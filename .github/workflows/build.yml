@@ -17,12 +17,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Find project folder
+      - name: Find or unzip project
         id: proj
         run: |
           f=$(find . -maxdepth 3 -name settings.gradle.kts -not -path './.git/*' | head -n 1)
           if [ -z "$f" ]; then
-            echo "settings.gradle.kts not found. Upload ALL unzipped project files (app folder, settings.gradle.kts, build.gradle.kts, gradle.properties)."
+            z=$(find . -maxdepth 2 -name '*.zip' -not -path './.git/*' | head -n 1)
+            if [ -n "$z" ]; then
+              echo "Unzipping $z"
+              mkdir -p "$RUNNER_TEMP/src"
+              unzip -q -o "$z" -d "$RUNNER_TEMP/src"
+              f=$(find "$RUNNER_TEMP/src" -maxdepth 3 -name settings.gradle.kts | head -n 1)
+            fi
+          fi
+          if [ -z "$f" ]; then
+            echo "Project not found. Upload OmniConvertPro.zip to the repository."
             exit 1
           fi
           echo "dir=$(dirname "$f")" >> "$GITHUB_OUTPUT"
