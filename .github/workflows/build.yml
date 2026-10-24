@@ -17,6 +17,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Find project folder
+        id: proj
+        run: |
+          f=$(find . -maxdepth 3 -name settings.gradle.kts -not -path './.git/*' | head -n 1)
+          if [ -z "$f" ]; then
+            echo "settings.gradle.kts not found. Upload ALL unzipped project files (app folder, settings.gradle.kts, build.gradle.kts, gradle.properties)."
+            exit 1
+          fi
+          echo "dir=$(dirname "$f")" >> "$GITHUB_OUTPUT"
+          echo "Project folder: $(dirname "$f")"
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
@@ -27,11 +38,12 @@ jobs:
           gradle-version: '8.7'
 
       - name: Build debug APK
+        working-directory: ${{ steps.proj.outputs.dir }}
         run: gradle assembleDebug --stacktrace
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
           name: OmniConvertPro-debug-apk
-          path: app/build/outputs/apk/debug/*.apk
+          path: ${{ steps.proj.outputs.dir }}/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
